@@ -27,19 +27,6 @@ It provides data-driven insights by visually analyzing real-time trending keywor
 
 ---
 
-## 📦 Installation & Usage
-
-```bash
-git clone https://github.com/LeannaJ/Web_Dashboard.git
-cd Web_Dashboard/astra-dashboard
-npm install
-npm start
-```
-
-- Open your browser and go to `http://localhost:3000`
-
----
-
 ## 📊 Data Structure
 
 - `public/trend.csv`  
@@ -62,14 +49,12 @@ npm start
 
 ---
 
-## 📄 License
-
-MIT
-
----
-
 ## 🙏 Special Thanks
 
 - d3.js, styled-components, papaparse, and the open source community
 
 ---
+
+## 🖼️ Preview
+
+![Dashboard Screenshot](./public/Dashboard_Example.jpeg)
