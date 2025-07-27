@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
-function getRadiusByRank(rank) {
-  if (rank <= 3) return 90;
-  if (rank <= 6) return 70;
-  if (rank <= 9) return 55;
-  if (rank <= 12) return 40;
-  return 28;
+function getRadiusByScore(score, maxScore) {
+  // Scale the radius based on the score relative to the maximum score
+  // Minimum radius: 35, Maximum radius: 70 (smaller range for less variation)
+  const minRadius = 35;
+  const maxRadius = 70;
+  const normalizedScore = score / maxScore;
+  return minRadius + (normalizedScore * (maxRadius - minRadius));
 }
 
 function PackedBubbleChart({ data = [] }) {
@@ -20,7 +21,8 @@ function PackedBubbleChart({ data = [] }) {
       return;
     }
     const width = 800, height = 800;
-    const root = d3.hierarchy({ children: data }).sum(d => getRadiusByRank(d.rank) ** 2);
+    const maxScore = Math.max(...data.map(d => d.score));
+    const root = d3.hierarchy({ children: data }).sum(d => getRadiusByScore(d.score, maxScore) ** 2);
     d3.pack().size([width, height]).padding(2)(root);
     setNodes(root.descendants());
   }, [data]);
@@ -58,7 +60,7 @@ function PackedBubbleChart({ data = [] }) {
           onMouseOut={() => setHoveredIdx(null)}
         >
           <circle
-            r={d.depth !== 0 ? getRadiusByRank(d.data.rank) : 0}
+            r={d.depth !== 0 ? getRadiusByScore(d.data.score, Math.max(...data.map(d => d.score))) : 0}
             fill={d.depth === 0 ? "none" : "url(#bubbleLinear)"}
             opacity={d.depth === 0 ? 1 : 1}
             stroke="none"
@@ -70,10 +72,14 @@ function PackedBubbleChart({ data = [] }) {
               dy=".35em"
               filter="url(#textShadow)"
               style={{
-                fontSize: Math.min(2 * getRadiusByRank(d.data.rank) / (d.data.keyword ? d.data.keyword.length : d.data.name.length), getRadiusByRank(d.data.rank) / 2.5),
+                fontSize: Math.min(
+                  Math.max(8, getRadiusByScore(d.data.score, Math.max(...data.map(d => d.score))) / 4), // Minimum 8px, scale with bubble size
+                  14 // Maximum 14px for smaller text
+                ),
                 fill: "#fff",
                 pointerEvents: "none",
-                fontFamily: 'Inter, sans-serif'
+                fontFamily: 'Inter, sans-serif',
+                fontWeight: '600'
               }}
             >
               {d.data.keyword || d.data.name}

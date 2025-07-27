@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { Link, useLocation } from 'react-router-dom';
 
 const NavContainer = styled.nav`
   position: fixed;
@@ -36,7 +37,7 @@ const NavItem = styled.li`
   position: relative;
 `;
 
-const NavLink = styled.a`
+const NavLink = styled(Link)`
   color: ${props => props.active ? '#c084fc' : '#b0b8c1'};
   text-decoration: none;
   font-size: 0.9rem;
@@ -67,39 +68,29 @@ const NavLink = styled.a`
 `;
 
 function Navigation() {
-  const [activeMenu, setActiveMenu] = useState('Home');
-
-  const handleMenuClick = (menu) => {
-    setActiveMenu(menu);
+  const location = useLocation();
+  const menuMap = {
+    '/': 'Home',
+    '/dashboard': 'Dashboard',
+    '/archive': 'Archive',
+    '/raw-data': 'Raw Data',
   };
-
+  const activeMenu = menuMap[location.pathname] || 'Home';
   return (
     <NavContainer>
       <Logo>ASTRA</Logo>
       <NavMenu>
         <NavItem>
-          <NavLink 
-            active={activeMenu === 'Home'} 
-            onClick={() => handleMenuClick('Home')}
-          >
-            Home
-          </NavLink>
+          <NavLink to="/" active={activeMenu === 'Home'}>Home</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink 
-            active={activeMenu === 'Dashboard'} 
-            onClick={() => handleMenuClick('Dashboard')}
-          >
-            Dashboard
-          </NavLink>
+          <NavLink to="/dashboard" active={activeMenu === 'Dashboard'}>Dashboard</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink 
-            active={activeMenu === 'Archive'} 
-            onClick={() => handleMenuClick('Archive')}
-          >
-            Archive
-          </NavLink>
+          <NavLink to="/archive" active={activeMenu === 'Archive'}>Archive</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/raw-data" active={activeMenu === 'Raw Data'}>Raw Data</NavLink>
         </NavItem>
       </NavMenu>
     </NavContainer>

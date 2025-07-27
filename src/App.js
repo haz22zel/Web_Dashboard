@@ -5,6 +5,9 @@ import Navigation from './components/Navigation';
 import styled from 'styled-components';
 import Papa from 'papaparse';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import RawData from './components/RawData';
+import TrendStrategy from './components/TrendStrategy';
 
 const MainContainer = styled.div`
   display: flex;
@@ -42,33 +45,41 @@ function App() {
   const [trendData, setTrendData] = useState([]);
 
   useEffect(() => {
-    fetch('/trend.csv')
+    fetch('/top_20_trends_2025-07-24_153717.csv')
       .then(res => res.text())
       .then(csv => {
         const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true }).data;
         const sorted = parsed
-          .filter(d => d.keyword && d.score && !isNaN(Number(d.score)))
-          .sort((a, b) => Number(b.score) - Number(a.score))
+          .filter(d => d.keyword && d.TrendScore && !isNaN(Number(d.TrendScore)))
+          .sort((a, b) => Number(b.TrendScore) - Number(a.TrendScore))
           .slice(0, 15)
-          .map((d, i) => ({ keyword: d.keyword, score: Number(d.score), rank: i + 1 }));
+          .map((d, i) => ({ keyword: d.keyword, score: Number(d.TrendScore), rank: i + 1 }));
         setTrendData(sorted);
       });
   }, []);
 
   return (
-    <>
+    <Router>
       <Navigation />
-      <MainContainer>
-        <LeftSection>
-          <HeroContainer>
-            <HeroSection />
-          </HeroContainer>
-        </LeftSection>
-        <RightSection>
-          <PackedBubbleChart data={trendData} />
-        </RightSection>
-      </MainContainer>
-    </>
+      <Routes>
+        <Route path="/" element={
+          <MainContainer>
+            <LeftSection>
+              <HeroContainer>
+                <HeroSection />
+              </HeroContainer>
+            </LeftSection>
+            <RightSection>
+              <PackedBubbleChart data={trendData} />
+            </RightSection>
+          </MainContainer>
+        } />
+        <Route path="/raw-data" element={<RawData />} />
+        <Route path="/trend-strategy" element={<TrendStrategy />} />
+        <Route path="/topic/:topicId" element={<TrendStrategy />} />
+        {/* Add more routes as needed */}
+      </Routes>
+    </Router>
   );
 }
 
