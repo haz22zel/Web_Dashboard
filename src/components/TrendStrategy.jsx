@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import Papa from 'papaparse';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -68,11 +69,23 @@ const FilterSelect = styled.select`
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   min-width: 200px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(192, 132, 252, 0.4);
+    transform: translateY(-1px);
+  }
 
   &:focus {
     outline: none;
     border-color: #c084fc;
     box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 
   option {
@@ -142,7 +155,7 @@ const StatLabel = styled.div`
 `;
 
 const TrendingTopicsSection = styled.div`
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 `;
 
 const SectionTitle = styled.h2`
@@ -156,10 +169,13 @@ const SectionTitle = styled.h2`
 
 const TrendingTopicsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 1.5rem;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 1400px;
+  margin: 0 auto 2rem auto;
+  opacity: ${props => props.loading ? 0.6 : 1};
+  transform: ${props => props.loading ? 'scale(0.98)' : 'scale(1)'};
+  transition: all 0.2s ease;
 `;
 
 const TopicCard = styled.div`
@@ -171,6 +187,17 @@ const TopicCard = styled.div`
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  animation: fadeInUp 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(15px);
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   &:hover {
     transform: translateY(-3px);
@@ -437,6 +464,212 @@ const SubtopicMetricLabel = styled.div`
   margin-top: 0.2rem;
 `;
 
+const HoverOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 15px;
+  z-index: 10;
+
+  ${TopicCard}:hover & {
+    opacity: 1;
+  }
+`;
+
+const HoverText = styled.div`
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #ff6ac1, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const BarChartContainer = styled.div`
+  margin: 1rem auto 0 auto;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 1800px;
+  height: calc(100vh - 350px);
+  min-height: 550px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ff6ac1, #38bdf8, #c084fc);
+  }
+`;
+
+const BarChartTitle = styled.h3`
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ff6ac1, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  text-shadow: 0 0 30px rgba(255, 106, 193, 0.3);
+`;
+
+const BarChartGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(192, 132, 252, 0.2);
+    transform: translateX(5px);
+  }
+`;
+
+const BarLabel = styled.div`
+  font-size: 0.9rem;
+  color: white;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  min-width: 100px;
+  max-width: 130px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+`;
+
+const BarContainer = styled.div`
+  flex: 1;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+`;
+
+const BarFill = styled.div`
+  height: 100%;
+  background: linear-gradient(90deg, #ff6ac1, #38bdf8, #c084fc);
+  border-radius: 20px;
+  transition: width 1s ease;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(255, 106, 193, 0.3);
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 3s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+`;
+
+const BarValue = styled.div`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px 6px;
+  border-radius: 6px;
+  backdrop-filter: blur(5px);
+`;
+
+const RelatedKeywordsSection = styled.div`
+  margin-top: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const RelatedKeywordsTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: #c084fc;
+  font-family: 'Inter', sans-serif;
+`;
+
+const KeywordsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const KeywordCard = styled.div`
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(192, 132, 252, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const KeywordName = styled.div`
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+  font-family: 'Inter', sans-serif;
+`;
+
+const KeywordScore = styled.div`
+  font-size: 0.9rem;
+  color: #ff6ac1;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+`;
+
 const BackButton = styled.button`
   background: linear-gradient(135deg, #ff6ac1, #38bdf8);
   color: white;
@@ -463,73 +696,146 @@ function TrendStrategy() {
   const [contentType, setContentType] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [isDetailView, setIsDetailView] = useState(false);
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [relatedKeywords, setRelatedKeywords] = useState([]);
 
-  const topicCategories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'entertainment', label: 'Entertainment' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'news', label: 'News & Politics' },
-    { value: 'sports', label: 'Sports' },
-    { value: 'education', label: 'Education' },
-    { value: 'business', label: 'Business' }
-  ];
+  // Function to load and extract categories from CSV
+  const loadCategories = async (contentType) => {
+    try {
+      const fileName = getCSVFileName(contentType);
+      const response = await fetch(fileName);
+      const csvText = await response.text();
+      
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+      
+      // Extract unique categories
+      const categories = [...new Set(parsed
+        .filter(d => d.category && d.category.trim() !== '')
+        .map(d => d.category.trim())
+      )].sort();
+      
+      // Add "All Categories" option
+      const allCategories = [
+        { value: 'all', label: 'All Categories' },
+        ...categories.map(cat => ({ value: cat, label: cat }))
+      ];
+      
+      setAvailableCategories(allCategories);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setAvailableCategories([{ value: 'all', label: 'All Categories' }]);
+    }
+  };
 
   const contentTypes = [
     { value: 'all', label: 'All Content Types' },
     { value: 'video', label: 'Video' },
     { value: 'image', label: 'Image' },
-    { value: 'text', label: 'Text' },
-    { value: 'story', label: 'Story' },
-    { value: 'reel', label: 'Reel' },
-    { value: 'live', label: 'Live Stream' }
+    { value: 'text', label: 'Text' }
   ];
 
-  // Sample trending topics data
-  const trendingTopics = [
-    {
-      id: 1,
-      name: "Ozzy",
-      views: "2.4M",
-      engagement: "85%",
-      growth: "+12%"
-    },
-    {
-      id: 2,
-      name: "Black Sabbath",
-      views: "1.8M",
-      engagement: "78%",
-      growth: "+8%"
-    },
-    {
-      id: 3,
-      name: "Gaza",
-      views: "1.5M",
-      engagement: "92%",
-      growth: "+15%"
-    },
-    {
-      id: 4,
-      name: "#15YearsOfOneDirection",
-      views: "1.2M",
-      engagement: "89%",
-      growth: "+6%"
-    },
-    {
-      id: 5,
-      name: "MAEWNAM IS THE WAN",
-      views: "980K",
-      engagement: "76%",
-      growth: "+4%"
-    },
-    {
-      id: 6,
-      name: "Hamas",
-      views: "850K",
-      engagement: "88%",
-      growth: "+9%"
+  // Function to get the appropriate CSV file based on content type
+  const getCSVFileName = (contentType) => {
+    switch (contentType) {
+      case 'video':
+        return '/consolidated_scores_w_crossbonus_video_2025-07-29_125911.csv';
+      case 'image':
+        return '/consolidated_scores_w_crossbonus_image_2025-07-29_125911.csv';
+      case 'text':
+        return '/consolidated_scores_w_crossbonus_text_2025-07-29_125911.csv';
+      default:
+        return '/consolidated_scores_w_crossbonus_2025-07-29_125911.csv';
     }
-  ];
+  };
+
+  // Function to load trending topics data
+  const loadTrendingTopics = async (contentType) => {
+    setLoading(true);
+    
+    // Reduced delay for faster response
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    try {
+      const fileName = getCSVFileName(contentType);
+      const response = await fetch(fileName);
+      const csvText = await response.text();
+      
+      // Parse CSV using Papa Parse (you'll need to import it)
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+      
+      // Filter by category if not "all"
+      let filteredData = parsed.filter(d => d.group_name && d.final_trend_score && !isNaN(Number(d.final_trend_score)));
+      
+      if (topicCategory !== 'all') {
+        filteredData = filteredData.filter(d => d.category === topicCategory);
+      }
+      
+      // Remove duplicates based on group_name and keep the highest score for each group
+      const uniqueGroups = new Map();
+      filteredData.forEach(d => {
+        const groupName = d.group_name.trim();
+        const score = Number(d.final_trend_score);
+        
+        if (!uniqueGroups.has(groupName) || score > uniqueGroups.get(groupName).score) {
+          uniqueGroups.set(groupName, {
+            group_name: groupName,
+            final_trend_score: score
+          });
+        }
+      });
+      
+      // Process the data
+      const processed = Array.from(uniqueGroups.values())
+        .sort((a, b) => b.final_trend_score - a.final_trend_score)
+        .slice(0, 10)
+        .map((d, index) => ({
+          id: index + 1,
+          name: d.group_name,
+          trendScore: d.final_trend_score.toFixed(2)
+        }));
+      
+      setTrendingTopics(processed);
+    } catch (error) {
+      console.error('Error loading trending topics:', error);
+      setTrendingTopics([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to load related keywords for a specific group
+  const loadRelatedKeywords = async (groupName, contentType) => {
+    try {
+      // Use the new consolidated dataset for related keywords
+      const response = await fetch('/consolidated_scores_w_crossbonus_2025-07-29_125911.csv');
+      const csvText = await response.text();
+      
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+      
+      // Filter for keywords that have the same group_name
+      const related = parsed.filter(d => 
+        d.group_name?.trim() === groupName?.trim() && 
+        d.keyword && 
+        d.keyword.trim() !== ''
+      );
+      
+      // Sort by final_trend_score and take top 10
+      const sortedRelated = related
+        .sort((a, b) => Number(b.final_trend_score) - Number(a.final_trend_score))
+        .slice(0, 10)
+        .map(d => ({
+          keyword: d.keyword.trim(),
+          score: Number(d.final_trend_score).toFixed(2)
+        }));
+      
+      setRelatedKeywords(sortedRelated);
+    } catch (error) {
+      console.error('Error loading related keywords:', error);
+      setRelatedKeywords([]);
+    }
+  };
 
   // Extended data for detailed view
   const topicDetails = {
@@ -631,16 +937,29 @@ function TrendStrategy() {
     }
   };
 
+  // Load categories when component mounts or content type changes
+  useEffect(() => {
+    loadCategories(contentType);
+  }, [contentType]);
+
+  // Load trending topics data when component mounts, content type, or category changes
+  useEffect(() => {
+    loadTrendingTopics(contentType);
+  }, [contentType, topicCategory]);
+
   // Check if we're in detail view based on URL parameter
   useEffect(() => {
     if (topicId && topicDetails[topicId]) {
       setIsDetailView(true);
       setSelectedTopic(topicDetails[topicId]);
+      // Load related keywords for this topic
+      loadRelatedKeywords(topicDetails[topicId].name, contentType);
     } else {
       setIsDetailView(false);
       setSelectedTopic(null);
+      setRelatedKeywords([]);
     }
-  }, [topicId]);
+  }, [topicId, contentType]);
 
   // If we're in detail view, show the topic detail page
   if (isDetailView && selectedTopic) {
@@ -708,14 +1027,26 @@ function TrendStrategy() {
             </DetailCard>
           </DetailGrid>
 
-          <RelatedTopics>
-            <RelatedTitle>Related Topics</RelatedTitle>
-            <RelatedList>
-              {selectedTopic.relatedTopics.map((topic, index) => (
-                <RelatedTag key={index}>{topic}</RelatedTag>
-              ))}
-            </RelatedList>
-          </RelatedTopics>
+                            <RelatedTopics>
+                    <RelatedTitle>Related Topics</RelatedTitle>
+                    <RelatedList>
+                      {selectedTopic.relatedTopics.map((topic, index) => (
+                        <RelatedTag key={index}>{topic}</RelatedTag>
+                      ))}
+                    </RelatedList>
+                  </RelatedTopics>
+
+                  <RelatedKeywordsSection>
+                    <RelatedKeywordsTitle>Related Trend Keywords</RelatedKeywordsTitle>
+                    <KeywordsGrid>
+                      {relatedKeywords.map((keyword, index) => (
+                        <KeywordCard key={index}>
+                          <KeywordName>{keyword.keyword}</KeywordName>
+                          <KeywordScore>Score: {keyword.score}</KeywordScore>
+                        </KeywordCard>
+                      ))}
+                    </KeywordsGrid>
+                  </RelatedKeywordsSection>
         </Content>
       </Container>
     );
@@ -735,8 +1066,9 @@ function TrendStrategy() {
             <FilterSelect 
               value={topicCategory} 
               onChange={(e) => setTopicCategory(e.target.value)}
+              disabled={loading}
             >
-              {topicCategories.map(category => (
+              {availableCategories.map(category => (
                 <option key={category.value} value={category.value}>
                   {category.label}
                 </option>
@@ -749,6 +1081,7 @@ function TrendStrategy() {
             <FilterSelect 
               value={contentType} 
               onChange={(e) => setContentType(e.target.value)}
+              disabled={loading}
             >
               {contentTypes.map(type => (
                 <option key={type.value} value={type.value}>
@@ -759,85 +1092,80 @@ function TrendStrategy() {
           </FilterGroup>
         </FilterSection>
 
-        <TrendingTopicsSection>
-          <SectionTitle>Top 6 Trending Topics</SectionTitle>
-          <TrendingTopicsGrid>
-            {trendingTopics.map((topic, index) => (
-              <TopicCard 
-                key={topic.id} 
-                onClick={() => navigate(`/topic/${topic.id}`)}
-                style={{ cursor: 'pointer' }}
-              >
-                <TopicRank>{index + 1}</TopicRank>
-                <TopicName>{topic.name}</TopicName>
-                <TopicStats>
-                  <TopicMetric>
-                    <MetricValue>{topic.views}</MetricValue>
-                    <MetricLabel>Views</MetricLabel>
-                  </TopicMetric>
-                  <TopicMetric>
-                    <MetricValue>{topic.engagement}</MetricValue>
-                    <MetricLabel>Engagement</MetricLabel>
-                  </TopicMetric>
-                  <TopicMetric>
-                    <MetricValue>{topic.growth}</MetricValue>
-                    <MetricLabel>Growth</MetricLabel>
-                  </TopicMetric>
-                </TopicStats>
-              </TopicCard>
-            ))}
-          </TrendingTopicsGrid>
-        </TrendingTopicsSection>
-
-        <DashboardGrid>
-          <DashboardCard>
-            <CardTitle>Trending Topics</CardTitle>
-            <CardContent>
-              Based on your selected filters, here are the top trending topics:
-            </CardContent>
-            <StatsGrid>
-              <StatItem>
-                <StatValue>24</StatValue>
-                <StatLabel>Active Trends</StatLabel>
-              </StatItem>
-              <StatItem>
-                <StatValue>1.2M</StatValue>
-                <StatLabel>Total Views</StatLabel>
-              </StatItem>
-            </StatsGrid>
-          </DashboardCard>
-
-          <DashboardCard>
-            <CardTitle>Engagement Metrics</CardTitle>
-            <CardContent>
-              Performance insights for your selected category and content type:
-            </CardContent>
-            <StatsGrid>
-              <StatItem>
-                <StatValue>85%</StatValue>
-                <StatLabel>Engagement Rate</StatLabel>
-              </StatItem>
-              <StatItem>
-                <StatValue>2.4K</StatValue>
-                <StatLabel>Avg. Shares</StatLabel>
-              </StatItem>
-            </StatsGrid>
-          </DashboardCard>
-
-          <DashboardCard>
-            <CardTitle>Content Recommendations</CardTitle>
-            <CardContent>
-              Suggested content strategies based on current trends and your filters.
-            </CardContent>
-          </DashboardCard>
-
-          <DashboardCard>
-            <CardTitle>Audience Insights</CardTitle>
-            <CardContent>
-              Demographic and behavioral data for your target audience.
-            </CardContent>
-          </DashboardCard>
-        </DashboardGrid>
+                <TrendingTopicsSection>
+                  <SectionTitle>Top 10 Trending Topics</SectionTitle>
+                  {loading ? (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '2rem', 
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      fontSize: '1.1rem',
+                      fontFamily: 'Inter, sans-serif'
+                    }}>
+                      <div style={{ 
+                        display: 'inline-block',
+                        width: '20px',
+                        height: '20px',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderTop: '2px solid #c084fc',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginRight: '10px'
+                      }}></div>
+                      Loading trending topics...
+                      <style>{`
+                        @keyframes spin {
+                          0% { transform: rotate(0deg); }
+                          100% { transform: rotate(360deg); }
+                        }
+                      `}</style>
+                    </div>
+                  ) : (
+                    <>
+                      <TrendingTopicsGrid loading={loading}>
+                        {trendingTopics.map((topic, index) => (
+                          <TopicCard 
+                            key={`${contentType}-${topic.id}`} 
+                            onClick={() => navigate(`/topic/${topic.id}`)}
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            <TopicRank>{index + 1}</TopicRank>
+                            <TopicName>{topic.name}</TopicName>
+                            <HoverOverlay>
+                              <HoverText>Click for more details</HoverText>
+                            </HoverOverlay>
+                          </TopicCard>
+                        ))}
+                      </TrendingTopicsGrid>
+                      
+                      {trendingTopics.length > 0 && (
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          width: '100%'
+                        }}>
+                          <BarChartContainer>
+                            <BarChartTitle>Trend Score Comparison</BarChartTitle>
+                            {trendingTopics.map((topic, index) => {
+                              const maxScore = Math.max(...trendingTopics.map(t => parseFloat(t.trendScore)));
+                              const percentage = (parseFloat(topic.trendScore) / maxScore) * 100;
+                              
+                              return (
+                                <BarChartGrid key={topic.id}>
+                                  <BarLabel>{topic.name}</BarLabel>
+                                  <BarContainer>
+                                    <BarFill style={{ width: `${percentage}%` }} />
+                                    <BarValue>{topic.trendScore}</BarValue>
+                                  </BarContainer>
+                                </BarChartGrid>
+                              );
+                            })}
+                          </BarChartContainer>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </TrendingTopicsSection>
       </Content>
     </Container>
   );

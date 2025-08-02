@@ -3,9 +3,9 @@ import * as d3 from 'd3';
 
 function getRadiusByScore(score, maxScore) {
   // Scale the radius based on the score relative to the maximum score
-  // Minimum radius: 35, Maximum radius: 70 (smaller range for less variation)
-  const minRadius = 35;
-  const maxRadius = 70;
+  // Adjusted range for better visual balance
+  const minRadius = 30;
+  const maxRadius = 65;
   const normalizedScore = score / maxScore;
   return minRadius + (normalizedScore * (maxRadius - minRadius));
 }
@@ -23,7 +23,7 @@ function PackedBubbleChart({ data = [] }) {
     const width = 800, height = 800;
     const maxScore = Math.max(...data.map(d => d.score));
     const root = d3.hierarchy({ children: data }).sum(d => getRadiusByScore(d.score, maxScore) ** 2);
-    d3.pack().size([width, height]).padding(2)(root);
+    d3.pack().size([width, height]).padding(12)(root);
     setNodes(root.descendants());
   }, [data]);
 
@@ -36,7 +36,7 @@ function PackedBubbleChart({ data = [] }) {
     : nodes;
 
   return (
-    <svg ref={svgRef} width={800} height={800}>
+    <svg ref={svgRef} width={800} height={800} style={{ display: 'block', margin: '0 auto' }}>
       <defs>
         <linearGradient id="bubbleLinear" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ff6ac1" stopOpacity="1" />
@@ -51,6 +51,8 @@ function PackedBubbleChart({ data = [] }) {
           <feDropShadow dx="0" dy="0" stdDeviation="32" flood-color="#fff" flood-opacity="0.18" />
         </filter>
       </defs>
+      
+
       {orderedNodes.map((d) => (
         <g
           key={d.data.keyword || d.data.name}
@@ -63,7 +65,8 @@ function PackedBubbleChart({ data = [] }) {
             r={d.depth !== 0 ? getRadiusByScore(d.data.score, Math.max(...data.map(d => d.score))) : 0}
             fill={d.depth === 0 ? "none" : "url(#bubbleLinear)"}
             opacity={d.depth === 0 ? 1 : 1}
-            stroke="none"
+            stroke={d.depth !== 0 ? "rgba(255, 255, 255, 0.3)" : "none"}
+            strokeWidth={d.depth !== 0 ? "2" : "0"}
             filter={d.depth !== 0 ? "url(#bubbleNeon)" : undefined}
           />
           {d.depth !== 0 && (

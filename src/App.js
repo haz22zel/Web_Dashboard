@@ -44,19 +44,40 @@ const HeroContainer = styled.section`
 function App() {
   const [trendData, setTrendData] = useState([]);
 
-  useEffect(() => {
-    fetch('/top_20_trends_2025-07-24_153717.csv')
-      .then(res => res.text())
-      .then(csv => {
-        const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true }).data;
-        const sorted = parsed
-          .filter(d => d.keyword && d.TrendScore && !isNaN(Number(d.TrendScore)))
-          .sort((a, b) => Number(b.TrendScore) - Number(a.TrendScore))
-          .slice(0, 15)
-          .map((d, i) => ({ keyword: d.keyword, score: Number(d.TrendScore), rank: i + 1 }));
-        setTrendData(sorted);
-      });
-  }, []);
+            useEffect(() => {
+            fetch('/consolidated_scores_w_crossbonus_2025-07-29_125911.csv')
+              .then(res => res.text())
+              .then(csv => {
+                const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true }).data;
+                
+                // Remove duplicates based on group_name and keep the highest score
+                const uniqueGroups = new Map();
+                parsed.forEach(d => {
+                  const groupName = d.group_name?.trim();
+                  const score = Number(d.final_trend_score);
+                  
+                  if (groupName && !isNaN(score)) {
+                    if (!uniqueGroups.has(groupName) || score > uniqueGroups.get(groupName).score) {
+                      uniqueGroups.set(groupName, {
+                        group_name: groupName,
+                        final_trend_score: score
+                      });
+                    }
+                  }
+                });
+                
+                const sorted = Array.from(uniqueGroups.values())
+                  .sort((a, b) => b.final_trend_score - a.final_trend_score)
+                  .slice(0, 15)
+                  .map((d, i) => ({ 
+                    keyword: d.group_name, 
+                    score: d.final_trend_score, 
+                    rank: i + 1 
+                  }));
+                
+                setTrendData(sorted);
+              });
+          }, []);
 
   return (
     <Router>

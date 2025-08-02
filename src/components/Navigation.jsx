@@ -71,9 +71,7 @@ function Navigation() {
   const location = useLocation();
   const menuMap = {
     '/': 'Home',
-    '/dashboard': 'Dashboard',
-    '/archive': 'Archive',
-    '/raw-data': 'Raw Data',
+    '/raw-data': 'User Manual',
   };
   const activeMenu = menuMap[location.pathname] || 'Home';
   return (
@@ -84,13 +82,7 @@ function Navigation() {
           <NavLink to="/" active={activeMenu === 'Home'}>Home</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/dashboard" active={activeMenu === 'Dashboard'}>Dashboard</NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink to="/archive" active={activeMenu === 'Archive'}>Archive</NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink to="/raw-data" active={activeMenu === 'Raw Data'}>Raw Data</NavLink>
+          <NavLink to="/raw-data" active={activeMenu === 'User Manual'}>User Manual</NavLink>
         </NavItem>
       </NavMenu>
     </NavContainer>
