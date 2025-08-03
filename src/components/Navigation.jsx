@@ -72,6 +72,7 @@ function Navigation() {
   const menuMap = {
     '/': 'Home',
     '/raw-data': 'User Manual',
+    '/api-generator': 'Image Generator',
   };
   const activeMenu = menuMap[location.pathname] || 'Home';
   return (
@@ -83,6 +84,9 @@ function Navigation() {
         </NavItem>
         <NavItem>
           <NavLink to="/raw-data" active={activeMenu === 'User Manual'}>User Manual</NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink to="/api-generator" active={activeMenu === 'Image Generator'}>Image Generator</NavLink>
         </NavItem>
       </NavMenu>
     </NavContainer>

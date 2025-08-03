@@ -8,6 +8,8 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import RawData from './components/RawData';
 import TrendStrategy from './components/TrendStrategy';
+import ApiGenerator from './components/ApiGenerator';
+import GeneratedResults from './components/GeneratedResults';
 
 const MainContainer = styled.div`
   display: flex;
@@ -98,6 +100,8 @@ function App() {
         <Route path="/raw-data" element={<RawData />} />
         <Route path="/trend-strategy" element={<TrendStrategy />} />
         <Route path="/topic/:topicId" element={<TrendStrategy />} />
+        <Route path="/api-generator" element={<ApiGenerator />} />
+        <Route path="/generated-results" element={<GeneratedResults />} />
         {/* Add more routes as needed */}
       </Routes>
     </Router>
