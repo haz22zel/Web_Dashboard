@@ -689,6 +689,64 @@ const BackButton = styled.button`
   }
 `;
 
+const GenerateImagesButton = styled.button`
+  background: linear-gradient(135deg, #ff6ac1, #38bdf8);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 1rem 0;
+  font-family: 'Inter', sans-serif;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 106, 193, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const GenerateContentButton = styled.button`
+  background: linear-gradient(135deg, #38bdf8, #ff6ac1);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+  position: absolute;
+  bottom: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+
+  &:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: translateX(-50%);
+  }
+`;
+
+
+
+
+
 function TrendStrategy() {
   const { topicId } = useParams();
   const navigate = useNavigate();
@@ -700,6 +758,8 @@ function TrendStrategy() {
   const [loading, setLoading] = useState(true);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [relatedKeywords, setRelatedKeywords] = useState([]);
+  
+
 
   // Function to load and extract categories from CSV
   const loadCategories = async (contentType) => {
@@ -837,6 +897,8 @@ function TrendStrategy() {
     }
   };
 
+
+
   // Extended data for detailed view
   const topicDetails = {
     1: {
@@ -972,6 +1034,8 @@ function TrendStrategy() {
             </BackButton>
             <ModalTitle>{selectedTopic.name}</ModalTitle>
             <Description>{selectedTopic.description}</Description>
+            
+
           </Header>
 
           <SubtopicsSection>
@@ -995,10 +1059,22 @@ function TrendStrategy() {
                       <SubtopicMetricLabel>Growth</SubtopicMetricLabel>
                     </SubtopicMetric>
                   </SubtopicMetrics>
+                  <GenerateImagesButton 
+                    onClick={() => navigate('/generated-results', { state: { topicName: subtopic.name } })}
+                    style={{ 
+                      marginTop: '1rem', 
+                      fontSize: '0.8rem', 
+                      padding: '0.5rem 1rem'
+                    }}
+                  >
+                    Generate Images for "{subtopic.name}"
+                  </GenerateImagesButton>
                 </SubtopicCard>
               ))}
             </SubtopicsGrid>
           </SubtopicsSection>
+
+
           
           <DetailGrid>
             <DetailCard>
@@ -1126,43 +1202,91 @@ function TrendStrategy() {
                         {trendingTopics.map((topic, index) => (
                           <TopicCard 
                             key={`${contentType}-${topic.id}`} 
-                            onClick={() => navigate(`/topic/${topic.id}`)}
+                            onClick={() => navigate('/api-generator', { 
+                              state: { 
+                                topicName: topic.name,
+                                topicData: topic
+                              } 
+                            })}
                             style={{ animationDelay: `${index * 0.05}s` }}
                           >
                             <TopicRank>{index + 1}</TopicRank>
                             <TopicName>{topic.name}</TopicName>
                             <HoverOverlay>
-                              <HoverText>Click for more details</HoverText>
+                              <HoverText>Click to generate AI content</HoverText>
                             </HoverOverlay>
                           </TopicCard>
                         ))}
                       </TrendingTopicsGrid>
                       
                       {trendingTopics.length > 0 && (
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'center', 
-                          width: '100%'
-                        }}>
-                          <BarChartContainer>
-                            <BarChartTitle>Trend Score Comparison</BarChartTitle>
-                            {trendingTopics.map((topic, index) => {
-                              const maxScore = Math.max(...trendingTopics.map(t => parseFloat(t.trendScore)));
-                              const percentage = (parseFloat(topic.trendScore) / maxScore) * 100;
-                              
-                              return (
-                                <BarChartGrid key={topic.id}>
-                                  <BarLabel>{topic.name}</BarLabel>
-                                  <BarContainer>
-                                    <BarFill style={{ width: `${percentage}%` }} />
-                                    <BarValue>{topic.trendScore}</BarValue>
-                                  </BarContainer>
-                                </BarChartGrid>
-                              );
-                            })}
-                          </BarChartContainer>
-                        </div>
-                      )}
+                        <>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            width: '100%'
+                          }}>
+                            <BarChartContainer>
+                              <BarChartTitle>Trend Score Comparison</BarChartTitle>
+                              {trendingTopics.map((topic, index) => {
+                                const maxScore = Math.max(...trendingTopics.map(t => parseFloat(t.trendScore)));
+                                const percentage = (parseFloat(topic.trendScore) / maxScore) * 100;
+                                
+                                return (
+                                  <BarChartGrid key={topic.id}>
+                                    <BarLabel>{topic.name}</BarLabel>
+                                    <BarContainer>
+                                      <BarFill style={{ width: `${percentage}%` }} />
+                                      <BarValue>{topic.trendScore}</BarValue>
+                                    </BarContainer>
+                                  </BarChartGrid>
+                                );
+                              })}
+                            </BarChartContainer>
+                                                    </div>
+
+                          <div style={{ 
+                            marginTop: '2rem',
+                            textAlign: 'center'
+                          }}>
+                            <h3 style={{ 
+                              fontSize: '1.5rem', 
+                              fontWeight: '600', 
+                              color: '#c084fc',
+                              marginBottom: '1.5rem',
+                              fontFamily: 'Inter, sans-serif'
+                            }}>
+                              Generate Data
+                            </h3>
+                            <div style={{ 
+                              display: 'flex', 
+                              flexWrap: 'wrap',
+                              justifyContent: 'center',
+                              gap: '1rem',
+                              maxWidth: '1200px',
+                              margin: '0 auto'
+                            }}>
+                              {trendingTopics.map((topic, index) => (
+                                <GenerateImagesButton 
+                                  key={topic.id}
+                                  onClick={() => navigate('/generated-results', { state: { topicName: topic.name } })}
+                                  style={{ 
+                                    fontSize: '0.9rem', 
+                                    padding: '0.8rem 1.5rem',
+                                    minWidth: '200px'
+                                  }}
+                                >
+                                  {topic.name}
+                                </GenerateImagesButton>
+                              ))}
+                            </div>
+                          </div>
+                          </>
+                        )}
+
+
+
+
                     </>
                   )}
                 </TrendingTopicsSection>
