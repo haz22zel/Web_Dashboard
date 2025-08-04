@@ -1245,42 +1245,7 @@ function TrendStrategy() {
                             </BarChartContainer>
                                                     </div>
 
-                          <div style={{ 
-                            marginTop: '2rem',
-                            textAlign: 'center'
-                          }}>
-                            <h3 style={{ 
-                              fontSize: '1.5rem', 
-                              fontWeight: '600', 
-                              color: '#c084fc',
-                              marginBottom: '1.5rem',
-                              fontFamily: 'Inter, sans-serif'
-                            }}>
-                              Generate Data
-                            </h3>
-                            <div style={{ 
-                              display: 'flex', 
-                              flexWrap: 'wrap',
-                              justifyContent: 'center',
-                              gap: '1rem',
-                              maxWidth: '1200px',
-                              margin: '0 auto'
-                            }}>
-                              {trendingTopics.map((topic, index) => (
-                                <GenerateImagesButton 
-                                  key={topic.id}
-                                  onClick={() => navigate('/generated-results', { state: { topicName: topic.name } })}
-                                  style={{ 
-                                    fontSize: '0.9rem', 
-                                    padding: '0.8rem 1.5rem',
-                                    minWidth: '200px'
-                                  }}
-                                >
-                                  {topic.name}
-                                </GenerateImagesButton>
-                              ))}
-                            </div>
-                          </div>
+
                           </>
                         )}
 
