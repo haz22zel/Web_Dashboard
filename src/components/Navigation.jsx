@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled from 'styled-components';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const NavContainer = styled.nav`
   position: fixed;
@@ -23,6 +23,13 @@ const Logo = styled.div`
   color: #fff;
   font-family: 'Inter', sans-serif;
   letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    color: #c084fc;
+    transform: scale(1.05);
+  }
 `;
 
 const NavMenu = styled.ul`
@@ -38,7 +45,7 @@ const NavItem = styled.li`
 `;
 
 const NavLink = styled(Link)`
-  color: ${props => props.active ? '#c084fc' : '#b0b8c1'};
+  color: ${props => props.$active ? '#c084fc' : '#b0b8c1'};
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -56,7 +63,7 @@ const NavLink = styled(Link)`
     position: absolute;
     bottom: -2px;
     left: 0;
-    width: ${props => props.active ? '100%' : '0%'};
+    width: ${props => props.$active ? '100%' : '0%'};
     height: 2px;
     background: linear-gradient(90deg, #ff6ac1, #38bdf8);
     transition: width 0.3s ease;
@@ -69,24 +76,30 @@ const NavLink = styled(Link)`
 
 function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
   const menuMap = {
     '/': 'Home',
     '/raw-data': 'User Manual',
-    '/api-generator': 'Image Generator',
+    '/api-generator': 'Content Generator',
   };
   const activeMenu = menuMap[location.pathname] || 'Home';
+  
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+  
   return (
     <NavContainer>
-      <Logo>ASTRA</Logo>
+      <Logo onClick={handleLogoClick}>ASTRA</Logo>
       <NavMenu>
         <NavItem>
-          <NavLink to="/" active={activeMenu === 'Home'}>Home</NavLink>
+          <NavLink to="/" $active={activeMenu === 'Home'}>Home</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/raw-data" active={activeMenu === 'User Manual'}>User Manual</NavLink>
+          <NavLink to="/raw-data" $active={activeMenu === 'User Manual'}>User Manual</NavLink>
         </NavItem>
         <NavItem>
-          <NavLink to="/api-generator" active={activeMenu === 'Image Generator'}>Image Generator</NavLink>
+          <NavLink to="/api-generator" $active={activeMenu === 'Content Generator'}>Content Generator</NavLink>
         </NavItem>
       </NavMenu>
     </NavContainer>

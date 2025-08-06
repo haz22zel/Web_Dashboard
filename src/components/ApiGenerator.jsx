@@ -73,6 +73,88 @@ const ImageCaption = styled.div`
   font-weight: 500;
 `;
 
+const NewTopicSection = styled.div`
+  margin-top: 3rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+`;
+
+const NewTopicTitle = styled.h3`
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: #e2e8f0;
+`;
+
+const NewTopicDescription = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 1.5rem;
+  font-family: 'Inter', sans-serif;
+`;
+
+const NewTopicForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 500px;
+  margin: 0 auto;
+`;
+
+const NewTopicInput = styled.input`
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #c084fc;
+    box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.1);
+  }
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const NewTopicButton = styled.button`
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #ff6ac1, #38bdf8);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 106, 193, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 const StyledImage = styled.img`
   width: 350px;
   height: 350px;
@@ -502,6 +584,8 @@ function ApiGenerator() {
   const [imageStates, setImageStates] = useState({});
   const [fileContents, setFileContents] = useState({});
   const [imageCaptions, setImageCaptions] = useState([]);
+  const [newTopic, setNewTopic] = useState('');
+  const [newTopicLoading, setNewTopicLoading] = useState(false);
 
   // Update topic when location state changes and auto-generate if topic is provided
   useEffect(() => {
@@ -588,6 +672,61 @@ function ApiGenerator() {
       console.error('API Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNewTopicSubmit = async (e) => {
+    e.preventDefault();
+    console.log('New topic form submitted with:', newTopic);
+    
+    if (!newTopic.trim()) {
+      setError('Please enter a topic');
+      return;
+    }
+
+    setNewTopicLoading(true);
+    setError('');
+    setSuccess('');
+    setResponse(null);
+    setImageStates({});
+    setFileContents({});
+    setImageCaptions([]);
+
+    try {
+      console.log('Making API call for topic:', newTopic.trim());
+      const response = await fetch('https://meta-project-23px.onrender.com/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ topic: newTopic.trim() }),
+      });
+
+      console.log('API response status:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', data);
+      console.log('Files in response:', data.files);
+      setResponse(data);
+      setSuccess('Images and content generated successfully!');
+      setNewTopic(''); // Clear the input after successful generation
+      
+      // Extract captions from the report
+      if (data.files) {
+        const reportFile = data.files.find(file => file.includes('imagegen_report_') && file.includes('.md'));
+        if (reportFile) {
+          await fetchFileContent(reportFile);
+        }
+      }
+    } catch (err) {
+      console.error('API Error details:', err);
+      setError(`Error: ${err.message}`);
+      console.error('API Error:', err);
+    } finally {
+      setNewTopicLoading(false);
     }
   };
 
@@ -1063,10 +1202,40 @@ function ApiGenerator() {
               })()}
             </ImageGrid>
 
-
-
-
-
+            {/* New Topic Input Section */}
+            <NewTopicSection>
+              <NewTopicTitle>Generate Content for Another Topic</NewTopicTitle>
+              <NewTopicDescription>
+                Found something else interesting? Enter a new topic below to generate more AI content.
+              </NewTopicDescription>
+              
+              <NewTopicForm onSubmit={handleNewTopicSubmit}>
+                <NewTopicInput
+                  type="text"
+                  value={newTopic}
+                  onChange={(e) => setNewTopic(e.target.value)}
+                  placeholder="Enter a new topic (e.g., Artificial Intelligence, Climate Change, etc.)"
+                  disabled={newTopicLoading}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleNewTopicSubmit(e);
+                    }
+                  }}
+                />
+                
+                <NewTopicButton type="submit" disabled={newTopicLoading}>
+                  {newTopicLoading ? (
+                    <>
+                      <LoadingSpinner />
+                      Generating Content...
+                    </>
+                  ) : (
+                    'Generate New Content'
+                  )}
+                </NewTopicButton>
+              </NewTopicForm>
+            </NewTopicSection>
 
           </>
         )}

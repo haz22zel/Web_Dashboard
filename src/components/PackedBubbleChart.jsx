@@ -10,6 +10,35 @@ function getRadiusByScore(score, maxScore) {
   return minRadius + (normalizedScore * (maxRadius - minRadius));
 }
 
+function getOptimalFontSize(text, radius) {
+  // Calculate optimal font size based on text length and bubble radius
+  const textLength = text.length;
+  const maxWidth = radius * 1.8; // Increased padding (90% of diameter)
+  
+  // Base font size calculation - increased base size
+  let fontSize = Math.min(radius * 0.6, maxWidth / (textLength * 0.5));
+  
+  // Ensure minimum and maximum bounds - increased minimum
+  fontSize = Math.max(10, Math.min(fontSize, 20));
+  
+  // For very long text, reduce font size less aggressively
+  if (textLength > 15) {
+    fontSize = Math.max(8, fontSize * 0.85);
+  }
+  
+  // For very short text, allow larger font
+  if (textLength <= 5) {
+    fontSize = Math.min(fontSize * 1.3, 22);
+  }
+  
+  // For medium length text, boost the size
+  if (textLength > 5 && textLength <= 10) {
+    fontSize = Math.min(fontSize * 1.1, 18);
+  }
+  
+  return Math.round(fontSize);
+}
+
 function PackedBubbleChart({ data = [] }) {
   const svgRef = useRef();
   const [hoveredIdx, setHoveredIdx] = useState(null);
@@ -43,12 +72,12 @@ function PackedBubbleChart({ data = [] }) {
           <stop offset="100%" stopColor="#38bdf8" stopOpacity="1" />
         </linearGradient>
         <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.4" />
+          <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.4" />
         </filter>
         <filter id="bubbleNeon" x="-60%" y="-60%" width="220%" height="220%">
-          <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#c084fc" flood-opacity="0.85" />
-          <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#a259f7" flood-opacity="0.5" />
-          <feDropShadow dx="0" dy="0" stdDeviation="32" flood-color="#fff" flood-opacity="0.18" />
+          <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor="#c084fc" floodOpacity="0.85" />
+          <feDropShadow dx="0" dy="0" stdDeviation="16" floodColor="#a259f7" floodOpacity="0.5" />
+          <feDropShadow dx="0" dy="0" stdDeviation="32" floodColor="#fff" floodOpacity="0.18" />
         </filter>
       </defs>
       
@@ -75,10 +104,7 @@ function PackedBubbleChart({ data = [] }) {
               dy=".35em"
               filter="url(#textShadow)"
               style={{
-                fontSize: Math.min(
-                  Math.max(8, getRadiusByScore(d.data.score, Math.max(...data.map(d => d.score))) / 4), // Minimum 8px, scale with bubble size
-                  14 // Maximum 14px for smaller text
-                ),
+                fontSize: getOptimalFontSize(d.data.keyword || d.data.name, getRadiusByScore(d.data.score, Math.max(...data.map(d => d.score)))),
                 fill: "#fff",
                 pointerEvents: "none",
                 fontFamily: 'Inter, sans-serif',

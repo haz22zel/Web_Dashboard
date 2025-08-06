@@ -3,13 +3,13 @@ import HeroSection from './components/HeroSection';
 import PackedBubbleChart from './components/PackedBubbleChart';
 import Navigation from './components/Navigation';
 import styled from 'styled-components';
-import Papa from 'papaparse';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import RawData from './components/RawData';
 import TrendStrategy from './components/TrendStrategy';
 import ApiGenerator from './components/ApiGenerator';
 import GeneratedResults from './components/GeneratedResults';
+import databaseService from './services/databaseService';
 
 const MainContainer = styled.div`
   display: flex;
@@ -46,40 +46,21 @@ const HeroContainer = styled.section`
 function App() {
   const [trendData, setTrendData] = useState([]);
 
-            useEffect(() => {
-            fetch('/consolidated_scores_w_crossbonus_2025-07-29_125911.csv')
-              .then(res => res.text())
-              .then(csv => {
-                const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true }).data;
-                
-                // Remove duplicates based on group_name and keep the highest score
-                const uniqueGroups = new Map();
-                parsed.forEach(d => {
-                  const groupName = d.group_name?.trim();
-                  const score = Number(d.final_trend_score);
-                  
-                  if (groupName && !isNaN(score)) {
-                    if (!uniqueGroups.has(groupName) || score > uniqueGroups.get(groupName).score) {
-                      uniqueGroups.set(groupName, {
-                        group_name: groupName,
-                        final_trend_score: score
-                      });
-                    }
-                  }
-                });
-                
-                const sorted = Array.from(uniqueGroups.values())
-                  .sort((a, b) => b.final_trend_score - a.final_trend_score)
-                  .slice(0, 15)
-                  .map((d, i) => ({ 
-                    keyword: d.group_name, 
-                    score: d.final_trend_score, 
-                    rank: i + 1 
-                  }));
-                
-                setTrendData(sorted);
-              });
-          }, []);
+              useEffect(() => {
+    const loadBubbleChartData = async () => {
+      try {
+        console.log('Loading bubble chart data...');
+        const data = await databaseService.loadBubbleChartData();
+        console.log('Bubble chart data loaded:', data);
+        setTrendData(data);
+      } catch (error) {
+        console.error('Error loading bubble chart data:', error);
+        setTrendData([]);
+      }
+    };
+    
+    loadBubbleChartData();
+  }, []);
 
   return (
     <Router>
