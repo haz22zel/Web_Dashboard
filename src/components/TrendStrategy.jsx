@@ -291,7 +291,7 @@ const LoadingSpinner = styled.div`
 const BarChartContainer = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 15px;
-  padding: 2rem;
+  padding: 2rem 2rem 2rem 20rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 2rem;
 `;
@@ -307,52 +307,52 @@ const BarChartTitle = styled.h3`
 
 const BarChart = styled.div`
   display: flex;
-  align-items: end;
-  justify-content: space-between;
-  height: 400px;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
   padding: 1rem 0;
+  height: 500px;
 `;
 
 const Bar = styled.div`
-  flex: 1;
-  background: linear-gradient(to top, #ff6ac1, #38bdf8);
-  border-radius: 8px 8px 0 0;
-  min-width: 40px;
+  height: 40px;
+  background: linear-gradient(to right, #ff6ac1, #38bdf8);
+  border-radius: 0 8px 8px 0;
+  min-height: 30px;
   position: relative;
   transition: all 0.3s ease;
   
   &:hover {
-    transform: scaleY(1.05);
+    transform: scaleX(1.02);
     box-shadow: 0 4px 20px rgba(255, 106, 193, 0.4);
   }
 `;
 
 const BarLabel = styled.div`
   position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
+  left: -240px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
   color: #e2e8f0;
   font-weight: 600;
-  text-align: center;
+  text-align: right;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
-  max-width: 80px;
+  max-width: 250px;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const BarValue = styled.div`
   position: absolute;
-  top: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.9rem;
-  color: #c084fc;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
+  color: white;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 `;
 
 const DetailView = styled.div`
@@ -496,7 +496,7 @@ function TrendStrategy() {
   }));
 
   const maxScore = Math.max(...barChartData.map(d => d.score), 1);
-  // For scores mostly below 0.3, use a max of 0.4 to make bars much taller
+  // For scores below 0.35, use a max of 0.4 to make bars much longer
   const adjustedMaxScore = 0.4;
 
   if (isDetailView && selectedTopic) {
@@ -618,13 +618,13 @@ function TrendStrategy() {
                             </BarChartTitle>
                   <BarChart>
                     {barChartData.map((data, index) => (
-                                             <Bar
-                         key={index}
-                         style={{ 
-                           height: `${(data.score / adjustedMaxScore) * 100}%`,
-                           minHeight: '20px'
-                         }}
-                       >
+                                                                   <Bar
+                        key={index}
+                        style={{ 
+                          width: `${(data.score / adjustedMaxScore) * 100}%`,
+                          minWidth: '20px'
+                        }}
+                      >
                         <BarValue>{data.score}</BarValue>
                         <BarLabel>{data.name}</BarLabel>
                       </Bar>
