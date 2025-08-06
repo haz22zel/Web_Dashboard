@@ -11,7 +11,7 @@ const Container = styled.div`
 `;
 
 const Content = styled.div`
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 `;
 
@@ -97,10 +97,10 @@ const SectionTitle = styled.h2`
 
 const TrendingTopicsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 1.5rem;
   margin-bottom: 3rem;
-  opacity: ${props => props.loading ? 0.6 : 1};
+  opacity: ${props => props.$loading ? 0.6 : 1};
   transition: opacity 0.3s ease;
 `;
 
@@ -162,6 +162,15 @@ const TopicName = styled.h3`
   color: #e2e8f0;
   font-family: 'Inter', sans-serif;
   line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 `;
 
 const TopicScore = styled.div`
@@ -196,6 +205,65 @@ const HoverText = styled.div`
   font-weight: 600;
   text-align: center;
   font-family: 'Inter', sans-serif;
+`;
+
+const InfoIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(192, 132, 252, 0.2);
+  border: 2px solid #c084fc;
+  border-radius: 50%;
+  color: #c084fc;
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    background: rgba(192, 132, 252, 0.3);
+    transform: scale(1.1);
+  }
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a2e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.4;
+  text-align: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 8px;
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  max-width: 600px;
+  min-width: 450px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.85);
+  }
 `;
 
 const LoadingSpinner = styled.div`
@@ -241,7 +309,7 @@ const BarChart = styled.div`
   display: flex;
   align-items: end;
   justify-content: space-between;
-  height: 300px;
+  height: 400px;
   gap: 1rem;
   padding: 1rem 0;
 `;
@@ -428,6 +496,8 @@ function TrendStrategy() {
   }));
 
   const maxScore = Math.max(...barChartData.map(d => d.score), 1);
+  // For scores mostly below 0.3, use a max of 0.4 to make bars much taller
+  const adjustedMaxScore = 0.4;
 
   if (isDetailView && selectedTopic) {
     return (
@@ -503,7 +573,7 @@ function TrendStrategy() {
             <LoadingSpinner />
           ) : (
             <>
-              <TrendingTopicsGrid loading={loading}>
+              <TrendingTopicsGrid $loading={loading}>
                 {trendingTopics.map((topic, index) => (
                   <TopicCard
                     key={`${contentType}-${topic.id}`}
@@ -517,7 +587,6 @@ function TrendStrategy() {
                   >
                     <TopicRank>{index + 1}</TopicRank>
                     <TopicName>{topic.name}</TopicName>
-                    <TopicScore>Score: {topic.trendScore}</TopicScore>
                     <HoverOverlay>
                       <HoverText>Click to generate AI content</HoverText>
                     </HoverOverlay>
@@ -525,18 +594,37 @@ function TrendStrategy() {
                 ))}
               </TrendingTopicsGrid>
 
-              {trendingTopics.length > 0 && (
-                <BarChartContainer>
-                  <BarChartTitle>Trend Score Comparison</BarChartTitle>
+                                      {trendingTopics.length > 0 && (
+                          <BarChartContainer>
+                            <BarChartTitle>
+                              Trend Score Comparison
+                              <InfoIcon 
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.querySelector('.tooltip').style.opacity = '1';
+                                  e.currentTarget.querySelector('.tooltip').style.visibility = 'visible';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.querySelector('.tooltip').style.opacity = '0';
+                                  e.currentTarget.querySelector('.tooltip').style.visibility = 'hidden';
+                                }}
+                              >
+                                ?
+                                <Tooltip className="tooltip">
+                                  <div>Topics are ranked based on how widely</div>
+                                  <div>discussed they are, how much engagement</div>
+                                  <div>they get, and whether they appear across multiple social platforms.</div>
+                                </Tooltip>
+                              </InfoIcon>
+                            </BarChartTitle>
                   <BarChart>
                     {barChartData.map((data, index) => (
-                      <Bar
-                        key={index}
-                        style={{ 
-                          height: `${(data.score / maxScore) * 100}%`,
-                          minHeight: '20px'
-                        }}
-                      >
+                                             <Bar
+                         key={index}
+                         style={{ 
+                           height: `${(data.score / adjustedMaxScore) * 100}%`,
+                           minHeight: '20px'
+                         }}
+                       >
                         <BarValue>{data.score}</BarValue>
                         <BarLabel>{data.name}</BarLabel>
                       </Bar>
