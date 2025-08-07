@@ -684,6 +684,9 @@ function ApiGenerator() {
       return;
     }
 
+    // Store the new topic before clearing
+    const topicToGenerate = newTopic.trim();
+    
     setNewTopicLoading(true);
     setError('');
     setSuccess('');
@@ -691,15 +694,18 @@ function ApiGenerator() {
     setImageStates({});
     setFileContents({});
     setImageCaptions([]);
+    setNewTopic(''); // Clear the input immediately
 
     try {
-      console.log('Making API call for topic:', newTopic.trim());
+      console.log('Making API call for topic:', topicToGenerate);
+      setSuccess('Starting content generation... This may take 2-3 minutes.');
+      
       const response = await fetch('https://meta-project-23px.onrender.com/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ topic: newTopic.trim() }),
+        body: JSON.stringify({ topic: topicToGenerate }),
       });
 
       console.log('API response status:', response.status);
@@ -710,9 +716,11 @@ function ApiGenerator() {
       const data = await response.json();
       console.log('API Response:', data);
       console.log('Files in response:', data.files);
+      
+      // Update the topic state to show the new topic
+      setTopic(topicToGenerate);
       setResponse(data);
-      setSuccess('Images and content generated successfully!');
-      setNewTopic(''); // Clear the input after successful generation
+      setSuccess('Content generated successfully!');
       
       // Extract captions from the report
       if (data.files) {
@@ -1208,6 +1216,22 @@ function ApiGenerator() {
               <NewTopicDescription>
                 Found something else interesting? Enter a new topic below to generate more AI content.
               </NewTopicDescription>
+              
+              {newTopicLoading && (
+                <div style={{
+                  background: 'rgba(192, 132, 252, 0.1)',
+                  border: '1px solid rgba(192, 132, 252, 0.3)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  textAlign: 'center',
+                  color: '#c084fc',
+                  fontFamily: 'Inter, sans-serif'
+                }}>
+                  <LoadingSpinner />
+                  Generating content for "{newTopic}"... This may take 2-3 minutes.
+                </div>
+              )}
               
               <NewTopicForm onSubmit={handleNewTopicSubmit}>
                 <NewTopicInput
