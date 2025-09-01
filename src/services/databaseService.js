@@ -1,40 +1,44 @@
-import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_CONFIG, DATABASE_TABLES } from '../config/supabase';
-
-const supabase = createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
+import Papa from 'papaparse';
 
 // Database service functions
 export const databaseService = {
-  // Get table name based on content type
-  getTableName: (contentType) => {
+  // Get CSV file path based on content type
+  getCsvFilePath: (contentType) => {
     switch (contentType) {
       case 'video':
-        return DATABASE_TABLES.TREND_VIDEO;
+        return '/consolidated_scores_w_crossbonus_video_2025-07-29_125911.csv';
       case 'image':
-        return DATABASE_TABLES.TREND_IMAGE;
+        return '/consolidated_scores_w_crossbonus_image_2025-07-29_125911.csv';
       case 'text':
-        return DATABASE_TABLES.TREND_TEXT;
+        return '/consolidated_scores_w_crossbonus_text_2025-07-29_125911.csv';
       default:
-        return DATABASE_TABLES.TREND_EQUAL;
+        return '/consolidated_scores_w_crossbonus_2025-07-29_125911.csv';
     }
   },
 
-  // Load categories from database
+  // Load categories from CSV
   loadCategories: async (contentType) => {
     try {
-      const tableName = databaseService.getTableName(contentType);
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('category')
-        .not('category', 'is', null);
-
-      if (error) {
-        console.error('Error loading categories:', error);
+      const csvPath = databaseService.getCsvFilePath(contentType);
+      console.log('Loading categories from CSV:', csvPath);
+      
+      const response = await fetch(csvPath);
+      const csvText = await response.text();
+      
+      const result = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
+      
+      if (result.errors.length > 0) {
+        console.error('CSV parsing errors:', result.errors);
         return [{ value: 'all', label: 'All Categories' }];
       }
-
+      
+      console.log('Raw categories data:', result.data);
+      
       // Extract unique categories
-      const categories = [...new Set(data
+      const categories = [...new Set(result.data
         .filter(d => d.category && d.category.trim() !== '')
         .map(d => d.category.trim())
       )].sort();
@@ -52,26 +56,30 @@ export const databaseService = {
     }
   },
 
-  // Load trending topics from database
+  // Load trending topics from CSV
   loadTrendingTopics: async (contentType, topicCategory = 'all') => {
     try {
-      const tableName = databaseService.getTableName(contentType);
-      let query = supabase
-        .from(tableName)
-        .select('*')
-        .not('group_name', 'is', null)
-        .not('final_trend_score', 'is', null);
-
+      const csvPath = databaseService.getCsvFilePath(contentType);
+      console.log('Loading trending topics from CSV:', csvPath);
+      
+      const response = await fetch(csvPath);
+      const csvText = await response.text();
+      
+      const result = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
+      
+      if (result.errors.length > 0) {
+        console.error('CSV parsing errors:', result.errors);
+        return [];
+      }
+      
+      let data = result.data;
+      
       // Filter by category if not "all"
       if (topicCategory !== 'all') {
-        query = query.eq('category', topicCategory);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error loading trending topics:', error);
-        return [];
+        data = data.filter(d => d.category === topicCategory);
       }
 
       // Remove duplicates based on group_name and keep the highest score
@@ -109,23 +117,29 @@ export const databaseService = {
     }
   },
 
-  // Load related keywords from database
+  // Load related keywords from CSV
   loadRelatedKeywords: async (groupName, contentType = 'all') => {
     try {
-      const tableName = databaseService.getTableName(contentType);
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('keyword, final_trend_score')
-        .eq('group_name', groupName)
-        .not('keyword', 'is', null)
-        .not('keyword', 'eq', '')
-        .order('final_trend_score', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error loading related keywords:', error);
+      const csvPath = databaseService.getCsvFilePath(contentType);
+      console.log('Loading related keywords from CSV:', csvPath);
+      
+      const response = await fetch(csvPath);
+      const csvText = await response.text();
+      
+      const result = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
+      
+      if (result.errors.length > 0) {
+        console.error('CSV parsing errors:', result.errors);
         return [];
       }
+      
+      const data = result.data
+        .filter(d => d.group_name === groupName && d.keyword && d.keyword.trim() !== '')
+        .sort((a, b) => Number(b.final_trend_score) - Number(a.final_trend_score))
+        .slice(0, 10);
 
       return data.map(d => ({
         keyword: d.keyword.trim(),
@@ -137,38 +151,27 @@ export const databaseService = {
     }
   },
 
-  // Load data for main page bubble chart
+  // Load data for main page bubble chart from CSV
   loadBubbleChartData: async () => {
     try {
-      console.log('Fetching from table:', DATABASE_TABLES.TREND_EQUAL);
+      const csvPath = '/consolidated_scores_w_crossbonus_2025-07-29_125911.csv';
+      console.log('Loading bubble chart data from CSV:', csvPath);
       
-      // First, let's see what tables exist and get a sample of data
-      const { data: allData, error: allError } = await supabase
-        .from(DATABASE_TABLES.TREND_EQUAL)
-        .select('*')
-        .limit(5);
+      const response = await fetch(csvPath);
+      const csvText = await response.text();
       
-      console.log('All data sample:', allData);
-      console.log('All data error:', allError);
+      const result = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
       
-      if (allError) {
-        console.error('Error fetching all data:', allError);
+      if (result.errors.length > 0) {
+        console.error('CSV parsing errors:', result.errors);
         return [];
       }
       
-      // Now try the filtered query
-      const { data, error } = await supabase
-        .from(DATABASE_TABLES.TREND_EQUAL)
-        .select('*')
-        .not('group_name', 'is', null)
-        .not('final_trend_score', 'is', null);
-
-      if (error) {
-        console.error('Error loading bubble chart data:', error);
-        return [];
-      }
-      
-      console.log('Raw data from database:', data);
+      const data = result.data.filter(d => d.group_name && d.final_trend_score);
+      console.log('Raw data from CSV:', data);
 
       // Remove duplicates based on group_name and keep the highest score
       const uniqueGroups = new Map();
